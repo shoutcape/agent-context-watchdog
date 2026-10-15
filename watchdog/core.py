@@ -66,7 +66,9 @@ class Core:
                 return
             self.last_discovery = self.clock()
             try:
-                self.agents = self.herdr.agents()
+                # A name can outlive its agent; such panes carry no agent label.
+                self.agents = {pane: agent for pane, agent in self.herdr.agents().items()
+                               if agent.get("agent")}
                 self.discovery_error = None
             except Exception as exc:
                 self.agents = {}

@@ -89,7 +89,7 @@ class Handoffs:
             self.save(handoff, successor_pane=pane)
             self.core.herdr.start(handoff["successor_name"], source["kind"], pane, args)
             successor = self.core.herdr.agents().get(pane)
-            if not successor or successor["agent"] != source["kind"] or successor.get("name") != handoff["successor_name"]:
+            if not successor or successor.get("agent") != source["kind"] or successor.get("name") != handoff["successor_name"]:
                 raise RuntimeError("Herdr did not confirm the expected successor identity")
             self.save(handoff, successor_terminal=successor["terminal_id"], state="awaiting_ack")
             ack = shlex.join([self.core.command, "--pane", pane, "handoff", "ready", ident,

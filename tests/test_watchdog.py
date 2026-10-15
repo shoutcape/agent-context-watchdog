@@ -170,6 +170,13 @@ class CoreTests(unittest.TestCase):
         self.now += 121
         self.assertEqual(self.core.status()["agents"][0]["telemetry"], "stale")
 
+    def test_named_pane_without_agent_kind_is_ignored(self):
+        # Herdr keeps a name on a pane whose agent exited, with no agent label.
+        self.herdr.live["w1:p8"] = {"pane_id": "w1:p8", "terminal_id": "term_w1:p8",
+                                    "name": "leftover", "agent_status": "unknown"}
+        self.assertEqual([row["pane"] for row in self.core.status()["agents"]], ["w1:p1"])
+        self.assertIn("ignored", self.core.observe(self.report(pane="w1:p8")))
+
     def test_unknown_process_cannot_register(self):
         with self.assertRaisesRegex(ValueError, "foreground"):
             self.core.observe(self.report(pids=[999]))
