@@ -21,7 +21,6 @@ def transcript_usage(path, fallback_model="unknown"):
         if offset:
             stream.readline()
         lines = stream.read().splitlines()
-    trailing = 0
     model = fallback_model
     for line in reversed(lines):
         try:
@@ -46,9 +45,8 @@ def transcript_usage(path, fallback_model="unknown"):
                 return model, None
             if not sum(counts):
                 continue  # A failed/placeholder response is not a context reset.
-            return model, math.ceil(sum(counts)) + trailing
-        if entry.get("type") == "user":
-            trailing += math.ceil(len(json.dumps(message.get("content", ""), ensure_ascii=False)) / 4)
+            # Report the provider's usage as-is; never estimate content added since.
+            return model, math.ceil(sum(counts))
     return model, None
 
 
@@ -62,7 +60,7 @@ def run_hook(paths, payload):
     identity = caller()
     response = rpc(paths, {
         **identity, "op": "observe", "kind": "claude", "session": payload["session_id"],
-        "model": model, "tokens": tokens, "quality": "estimated", "cwd": payload["cwd"],
+        "model": model, "tokens": tokens, "quality": "reported", "cwd": payload["cwd"],
     })
     notification = response.get("notification")
     if not notification or (event == "Stop" and payload.get("stop_hook_active")):

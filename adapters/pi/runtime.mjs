@@ -8,7 +8,7 @@ export async function sample(pi, ctx, exchange = request) {
     op: "observe", kind: "pi", session,
     model: `${ctx.model.provider}/${ctx.model.id}`,
     tokens: usage?.tokens == null ? null : Math.ceil(usage.tokens),
-    capacity: usage?.contextWindow, quality: "estimated", cwd: ctx.cwd,
+    capacity: usage?.contextWindow, quality: "reported", cwd: ctx.cwd,
   });
   if (ctx.sessionManager.getSessionId() !== session) return;
   const notification = response.notification;

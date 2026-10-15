@@ -357,6 +357,9 @@ class AdapterTests(unittest.TestCase):
             with path.open("a") as stream:
                 stream.write(json.dumps(assistant(50)) + '\n{"partial":')
             self.assertEqual(transcript_usage(path)[1], 100070)
+            with path.open("a") as stream:
+                stream.write('\n' + json.dumps({"type": "user", "message": {"content": "x" * 4000}}) + '\n')
+            self.assertEqual(transcript_usage(path)[1], 100070)
 
     def test_claude_hook_injects_and_confirms_delivery(self):
         responses = [{"key": "key", "notification": {"id": "n", "text": "Consider a handoff"}}, {}]

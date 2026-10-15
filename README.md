@@ -130,11 +130,11 @@ OpenCode creates its fresh session through the original TUI's connected client, 
 
 | Harness | Context source | Reminder delivery |
 | --- | --- | --- |
-| OpenCode V2 TUI | Latest completed assistant request in the active context, including cached input, output/reasoning, plus estimated subsequent text/tool results | Idempotent synthetic message through the connected authenticated client, steering at the next step boundary |
-| Pi | Native `ctx.getContextUsage()` estimate | Custom steering message, with persisted notification ID for retry deduplication |
-| Claude Code | Latest main-thread transcript assistant usage, cached input and output, plus estimated trailing user/tool text | Hook `additionalContext`; Stop uses one feedback turn to let the agent assess the first reminder; repeat reminders are held at Stop and delivered on the next prompt or tool call |
+| OpenCode V2 TUI | Provider-reported usage of the latest completed assistant request: input, cached input, output and reasoning | Idempotent synthetic message through the connected authenticated client, steering at the next step boundary |
+| Pi | Pi's native `ctx.getContextUsage()` | Custom steering message, with persisted notification ID for retry deduplication |
+| Claude Code | Provider-reported usage of the latest main-thread assistant message in the transcript: input, cached input and output | Hook `additionalContext`; Stop uses one feedback turn to let the agent assess the first reminder; repeat reminders are held at Stop and delivered on the next prompt or tool call |
 
-All three readings are labelled **estimated**. Input counts are anchored in the last provider request, but tool output since that request, images, provider-hidden context, and in-flight generation prevent an exact next-request count. Text additions use a four-characters-per-token approximation. No cumulative session counters are used. After compaction with no new provider reading, usage is unknown rather than reused from the old context.
+All three readings are labelled **reported**: the watchdog uses the context figure the harness reports and never counts or estimates tokens itself. A reading reflects the last provider request, so content added since (such as tool output) appears at the next request. No cumulative session counters are used. After compaction with no new provider reading, usage is unknown rather than reused from the old context.
 
 OpenCode and Pi sample every five seconds; Pi also samples at turn/model/compaction boundaries. OpenCode monitors the current session route in each TUI. Claude reports on hook boundaries; an idle Claude session can appear stale even though it is healthy. Missing telemetry means an adapter is absent/not loaded, not zero usage.
 

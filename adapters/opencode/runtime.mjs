@@ -1,12 +1,12 @@
 import { request, socketPath } from "../bridge.mjs";
 
-const estimate = (value) => Math.ceil(JSON.stringify(value ?? "").length / 4);
 // V2.0.27's TUI client unwraps HTTP envelopes; the published client examples
 // expose { data }. Keep this boundary explicit and test both shapes.
 const data = (response) => response?.data ?? response;
 
+// Report the provider's usage from the latest completed request as-is;
+// never estimate content added since.
 export function contextTokens(messages) {
-  let trailing = 0;
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i];
     if (message.type === "compaction" && message.status === "completed") return null;
@@ -15,16 +15,7 @@ export function contextTokens(messages) {
       const counts = [usage.input, usage.output, usage.reasoning, usage.cache?.read, usage.cache?.write];
       if (counts.some((n) => !Number.isFinite(n) || n < 0)) return null;
       if (counts.every((n) => n === 0)) continue;
-      // Tool results follow this assistant's model request and are not in its input count.
-      const tools = (message.content ?? []).filter((c) => c.type === "tool");
-      const results = tools.reduce((n, tool) => n + (
-        tool.state.status === "completed" ? estimate(tool.state.content)
-          : tool.state.status === "error" ? estimate(tool.state.error) : 0
-      ), 0);
-      return Math.ceil(counts.reduce((a, b) => a + b, 0)) + trailing + results;
-    }
-    if (["user", "synthetic", "system", "assistant", "shell", "skill"].includes(message.type)) {
-      trailing += estimate(message.content ?? message.text ?? message);
+      return Math.ceil(counts.reduce((a, b) => a + b, 0));
     }
   }
   return null;
@@ -46,7 +37,7 @@ export async function sample(ctx, exchange = request) {
   const response = await exchange({
     op: "observe", kind: "opencode", session: sessionID,
     model: `${session.model.providerID}/${session.model.id}`,
-    tokens: contextTokens(data(contextResponse)), quality: "estimated",
+    tokens: contextTokens(data(contextResponse)), quality: "reported",
     cwd: session.location.directory, profile: session.agent,
     can_retire: !ctx.ui.tabs.enabled() || ctx.ui.tabs.list().length <= 1,
     server_args: serverIndex >= 0 ? ["--server", process.argv[serverIndex + 1]]

@@ -12,10 +12,10 @@ test("OpenCode uses latest per-request context with cache, not accumulated usage
   expect(contextTokens([])).toBeNull();
 });
 
-test("OpenCode includes tool output added after the last provider input", () => {
+test("OpenCode reports provider usage without estimating later messages", () => {
   const message = assistant(5000);
   message.content.push({ type: "tool", state: { status: "completed", content: [{ type: "text", text: "x".repeat(4000) }] } });
-  expect(contextTokens([message])).toBeGreaterThan(106150);
+  expect(contextTokens([message, { type: "user", content: "y".repeat(4000) }])).toBe(105150);
 });
 
 function opencodeContext() {
