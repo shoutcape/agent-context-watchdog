@@ -9,6 +9,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+from watchdog.cli import format_status
 from watchdog.claude import transcript_usage, run_hook
 from watchdog.config import Config, Paths
 from watchdog.core import Core
@@ -448,6 +449,28 @@ class AdapterTests(unittest.TestCase):
             self.assertTrue(Path(tmp, ".local/bin/acw").is_symlink())
             self.assertNotIn("hooks", json.loads(Path(tmp, "claude/settings.json").read_text()))
 
+
+class StatusFormatTests(unittest.TestCase):
+    def test_compact_status_shows_human_relevant_fields(self):
+        base = {"pane": "w1:p1", "kind": "claude", "model": "opus", "tokens": 150000, "limit": 200000,
+                "quality": "reported", "telemetry": "current", "observed_at": 1000}
+        status = {"agents": [
+            base,
+            {**base, "pane": "w1:p2", "kind": "pi", "quality": "estimated", "telemetry": "stale", "tokens": 900},
+            {"pane": "w1:p3", "kind": "opencode", "telemetry": "missing"},
+        ], "handoffs": [
+            {"id": "h1", "source_pane": "w1:p1", "successor_pane": "w1:p4", "state": "awaiting_ack"},
+            {"id": "h0", "source_pane": "w1:p1", "state": "retired"},
+        ], "config_error": "bad json", "discovery_error": None}
+        text = format_status(status, now=1000 + 300)
+        self.assertIn("3 agents", text)
+        self.assertIn("150k / 200k  75%", text)
+        self.assertIn("~900 / 200k  0%  stale 5m", text)
+        self.assertIn("no telemetry", text)
+        self.assertIn("h1  w1:p1 → w1:p4  awaiting_ack", text)
+        self.assertNotIn("h0", text)
+        self.assertIn("Config error: bad json", text)
+        self.assertNotIn("Discovery error", text)
 
 
 class ServerTests(unittest.TestCase):

@@ -32,9 +32,10 @@ Keep this checkout at a stable path. From the checkout, inside Herdr:
 `start` launches a detached watchdog process, **not an agent**. One daemon covers all supported panes/workspaces in the current Herdr session. Run it once inside each Herdr session you want monitored. It does not install a boot-time service.
 
 ```sh
-acw watch    # Foreground mode, suitable for a process supervisor
-acw status  # JSON: context readings, missing/stale adapters, handoffs, errors
-acw stop    # Stop only this Herdr session's watchdog
+acw watch             # Foreground mode, suitable for a process supervisor
+acw status            # Context per agent, missing/stale adapters, open handoffs, errors
+acw status --verbose  # Full JSON status
+acw stop              # Stop only this Herdr session's watchdog
 ```
 
 Stopping the watchdog does not stop agents. Adapters tolerate an unavailable daemon. Restarting the daemon preserves reminder and handoff state.
