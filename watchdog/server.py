@@ -18,7 +18,10 @@ MAX_PACKET = 128 * 1024
 def rpc(paths, request, timeout=5):
     with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
         connection.settimeout(timeout)
-        connection.connect(str(paths.socket))
+        try:
+            connection.connect(str(paths.socket))
+        except (FileNotFoundError, ConnectionRefusedError):
+            raise RuntimeError(f"Watchdog is not running (no daemon at {paths.socket}).\nStart it with `acw start`.") from None
         connection.sendall(json.dumps(request).encode() + b"\n")
         with connection.makefile("rb") as stream:
             response = json.loads(stream.readline(4 * 1024 * 1024))

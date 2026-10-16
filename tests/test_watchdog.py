@@ -412,6 +412,14 @@ class AdapterTests(unittest.TestCase):
 
 
 class ServerTests(unittest.TestCase):
+    def test_rpc_explains_missing_daemon(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
+            "HERDR_ENV": "1", "HERDR_SOCKET_PATH": "/fake/herdr.sock", "ACW_HOME": tmp, "XDG_RUNTIME_DIR": tmp,
+        }):
+            paths = Paths()
+            with self.assertRaisesRegex(RuntimeError, "not running.*\\nStart it with `acw start`"):
+                rpc(paths, {"op": "status"})
+
     def test_real_socket_round_trip_restart_and_config_reload(self):
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
             "HERDR_ENV": "1", "HERDR_SOCKET_PATH": "/fake/herdr.sock", "HERDR_PANE_ID": "w1:p1",
