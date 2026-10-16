@@ -23,6 +23,8 @@ def parser():
         sub.add_parser(name)
     setup = sub.add_parser("install", help="Install CLI link and harness adapters")
     setup.add_argument("--harness", choices=["all", "opencode", "pi", "claude"], default="all")
+    remove = sub.add_parser("uninstall", help="Remove CLI link and harness adapters")
+    remove.add_argument("--harness", choices=["all", "opencode", "pi", "claude"], default="all")
     handoff = sub.add_parser("handoff").add_subparsers(dest="action", required=True)
     start = handoff.add_parser("start")
     start.add_argument("--session", required=True)
@@ -46,6 +48,10 @@ def main():
         if args.command == "install":
             from .install import install
             print(json.dumps(install(args.harness, command_path()), indent=2))
+            return
+        if args.command == "uninstall":
+            from .install import uninstall
+            print(json.dumps(uninstall(args.harness, command_path()), indent=2))
             return
         if args.command == "claude-hook" and os.environ.get("HERDR_ENV") != "1":
             return

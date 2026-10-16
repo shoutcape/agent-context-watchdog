@@ -13,7 +13,7 @@ from watchdog.claude import transcript_usage, run_hook
 from watchdog.config import Config, Paths
 from watchdog.core import Core
 from watchdog.handoff import Handoffs
-from watchdog.install import update_json
+from watchdog.install import install, uninstall, update_json
 from watchdog.server import serve, rpc
 from watchdog.store import Store
 
@@ -409,6 +409,45 @@ class AdapterTests(unittest.TestCase):
             update_json(path, lambda d: d["hooks"]["Stop"].append({"test": True}))
             self.assertEqual(json.loads(path.read_text())["permissions"], {"mode": "ask"})
             self.assertEqual(len(list(Path(tmp).glob("*.acw-backup-*"))), 1)
+
+    def test_uninstall_reverses_install_and_keeps_unrelated_settings(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
+            "HOME": tmp, "XDG_CONFIG_HOME": f"{tmp}/config", "CLAUDE_CONFIG_DIR": f"{tmp}/claude",
+            "PI_CODING_AGENT_DIR": f"{tmp}/pi",
+        }):
+            command = str(Path(__file__).resolve().parents[1] / "bin/acw")
+            claude, opencode = Path(tmp, "claude/settings.json"), Path(tmp, "config/opencode/cli.json")
+            claude.parent.mkdir()
+            other = {"hooks": [{"type": "command", "command": "other"}]}
+            claude.write_text(json.dumps({"model": "opus", "hooks": {"Stop": [other], "Notification": []}}))
+            opencode.parent.mkdir(parents=True)
+            opencode.write_text(json.dumps({"plugins": ["other-plugin"]}))
+            install("all", command)
+            result = uninstall("all", command)
+            self.assertEqual(json.loads(claude.read_text()),
+                             {"model": "opus", "hooks": {"Stop": [other], "Notification": []}})
+            self.assertEqual(json.loads(opencode.read_text()), {"plugins": ["other-plugin"]})
+            self.assertFalse(Path(tmp, "pi/extensions/context-watchdog.ts").exists())
+            self.assertFalse(Path(tmp, ".local/bin/acw").is_symlink())
+            self.assertEqual(len(result["removed"]), 4)
+            self.assertEqual(uninstall("all", command)["removed"], [])
+
+    def test_uninstall_leaves_unmanaged_pi_extension_and_partial_keeps_cli(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {
+            "HOME": tmp, "XDG_CONFIG_HOME": f"{tmp}/config", "CLAUDE_CONFIG_DIR": f"{tmp}/claude",
+            "PI_CODING_AGENT_DIR": f"{tmp}/pi",
+        }):
+            command = str(Path(__file__).resolve().parents[1] / "bin/acw")
+            install("claude", command)
+            extension = Path(tmp, "pi/extensions/context-watchdog.ts")
+            extension.parent.mkdir(parents=True)
+            extension.write_text("// mine\n")
+            uninstall("pi", command)
+            self.assertTrue(extension.exists())
+            uninstall("claude", command)
+            self.assertTrue(Path(tmp, ".local/bin/acw").is_symlink())
+            self.assertNotIn("hooks", json.loads(Path(tmp, "claude/settings.json").read_text()))
+
 
 
 class ServerTests(unittest.TestCase):

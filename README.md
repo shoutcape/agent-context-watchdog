@@ -160,7 +160,12 @@ Tests cover native adapter payloads, current-vs-cumulative accounting, cached to
 
 ## Remove
 
-Run `acw stop` in each monitored Herdr session. Remove this checkout's plugin entry from OpenCode's `cli.json`, the `context-watchdog.ts` Pi extension, and hook handlers whose command ends in this checkout's `bin/acw claude-hook` from Claude settings. Then remove the `~/.local/bin/acw` symlink. Keep or delete the dedicated config/state directories as desired. JSON backups are adjacent to files changed by installation.
+```sh
+acw stop          # in each monitored Herdr session
+acw uninstall     # or --harness opencode | pi | claude
+```
+
+`uninstall` removes only what `install` added for this checkout: the OpenCode plugin entry, the managed Pi extension, and Claude hook handlers running this checkout's `bin/acw claude-hook`. Unrelated plugins, hooks, and settings are preserved, and an unmanaged `context-watchdog.ts` is left alone. A full uninstall (no `--harness`) also removes the `~/.local/bin/acw` link. Restart or reload harnesses afterwards. Config and state directories are kept; delete them if desired. JSON backups sit beside changed files.
 
 ## Integration references
 
